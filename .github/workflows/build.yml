@@ -20,7 +20,7 @@ jobs:
         uses: robinraju/release-downloader@v1
         with:
           repository: beeware/Python-Apple-support
-          latest: true
+          tag: "3.13-b18"
           fileName: "*iOS-support*.tar.gz"
           out-file-path: python-download
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -78,10 +78,25 @@ jobs:
         env:
           PALLADIUM_DISABLE_PYTHON_DYLIB_CODESIGN: "1"
         run: |
+          set -o pipefail
           xcodebuild -project Sakurasou.xcodeproj -scheme Sakurasou \
             -configuration Release -sdk iphoneos \
             -derivedDataPath build \
-            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build \
+            2>&1 | tee xcodebuild.log
+
+      - name: Résumé des erreurs de build
+        if: failure()
+        run: |
+          grep -E "error:|BUILD FAILED|failed with a nonzero exit code" xcodebuild.log | sort -u | head -20 \
+            | while IFS= read -r l; do echo "::error::$l"; done || true
+
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
 
       - name: Create IPA
         run: |

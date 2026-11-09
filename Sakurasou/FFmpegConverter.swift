@@ -7,11 +7,15 @@ enum FFmpegConverter {
         try await Task.detached(priority: .userInitiated) {
             try? FileManager.default.removeItem(at: output)
             let args = ["-y", "-i", input.path, "-vn",
-                        "-codec:a", "libmp3lame", "-q:a", "2",
+                        "-c:a", "libmp3lame", "-q:a", "2",
                         output.path]
-            let code = SwiftFFmpegRunner.run(args)
-            guard code == 0, FileManager.default.fileExists(atPath: output.path) else {
-                throw AppError.badResponse("La conversion ffmpeg a échoué (code \(code)).")
+            do {
+                _ = try SwiftFFmpeg.execute(args)
+            } catch {
+                throw AppError.badResponse("La conversion ffmpeg a échoué : \(error)")
+            }
+            guard FileManager.default.fileExists(atPath: output.path) else {
+                throw AppError.badResponse("La conversion ffmpeg n'a produit aucun fichier.")
             }
         }.value
     }

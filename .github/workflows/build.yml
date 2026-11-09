@@ -37,28 +37,31 @@ jobs:
           grep -h 'define PY_VERSION ' Frameworks/Python.xcframework/ios-arm64/Python.framework/Headers/patchlevel.h
 
       # --- ffmpeg embarqué (SwiftFFmpeg-iOS de tfourj, utilisé par Palladium) ---
-      - name: Download SwiftFFmpeg-iOS
+      - name: Download SwiftFFmpeg-iOS release
         uses: robinraju/release-downloader@v1
         with:
           repository: tfourj/SwiftFFmpeg-iOS
           latest: true
           fileName: SwiftFFmpeg-iOS.zip
           out-file-path: swiftffmpeg-download
-          extract: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install SwiftFFmpeg-iOS
         run: |
           set -euo pipefail
-          SRC=""
-          if [ -d swiftffmpeg-download/SwiftFFmpeg-iOS ]; then
-            SRC=swiftffmpeg-download/SwiftFFmpeg-iOS
-          else
-            SRC=$(find swiftffmpeg-download -maxdepth 2 -name Package.swift -exec dirname {} \; | head -n 1)
+          mkdir -p swiftffmpeg-extract
+          unzip -q swiftffmpeg-download/SwiftFFmpeg-iOS.zip -d swiftffmpeg-extract
+          # Le dossier du paquet est celui qui contient Package.swift ET FFmpeg.xcframework
+          PKG=""
+          for d in $(find swiftffmpeg-extract -name Package.swift -exec dirname {} \;); do
+            if [ -d "$d/FFmpeg.xcframework" ]; then PKG="$d"; break; fi
+          done
+          if [ -z "$PKG" ]; then
+            echo "Arborescence extraite :"; find swiftffmpeg-extract -maxdepth 3
+            echo "Package.swift ou FFmpeg.xcframework introuvable"; exit 1
           fi
-          test -n "$SRC"
           rm -rf Frameworks/SwiftFFmpeg-iOS
-          cp -R "$SRC" Frameworks/SwiftFFmpeg-iOS
+          cp -R "$PKG" Frameworks/SwiftFFmpeg-iOS
           ls Frameworks/SwiftFFmpeg-iOS
 
       # --- yt-dlp (pur Python) installé dans un dossier de paquets ---

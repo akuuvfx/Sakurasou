@@ -1,32 +1,47 @@
 import Foundation
+import PythonKit
 
-/// yt-dlp ne pouvant pas s'exécuter nativement sur iOS, l'app appelle un serveur
-/// yt-dlp (ex: `yt-dlp` + petit wrapper HTTP) qui renvoie le MP3.
-/// Contrat : GET {server}/mp3?url=<URL encodée>  ->  corps = fichier audio/mpeg
+/// Télécharge l'audio d'une vidéo avec yt-dlp (Python embarqué) puis le convertit en MP3.
+/// Tout se passe sur l'iPhone, sans serveur.
 enum Downloader {
-    static func downloadMP3(videoURL: String, server: String,
+    static func downloadMP3(videoURL: String,
                             progress: @escaping (String) -> Void) async throws -> URL {
-        guard !server.isEmpty else { throw AppError.noServer }
-        var comps = URLComponents(string: server.trimmingCharacters(in: CharacterSet(charactersIn: "/")) + "/mp3")
-        comps?.queryItems = [URLQueryItem(name: "url", value: videoURL)]
-        guard let url = comps?.url else { throw AppError.badResponse("URL serveur invalide") }
+        let outDir = FileManager.default.temporaryDirectory.appendingPathComponent("dl-" + UUID().uuidString)
+        try FileManager.default.createDirectory(at: outDir, withIntermediateDirectories: true)
 
-        progress("Conversion et téléchargement…")
-        var req = URLRequest(url: url)
-        req.timeoutInterval = 600
-        let (tmp, resp) = try await URLSession.shared.download(for: req)
-        guard let http = resp as? HTTPURLResponse, http.statusCode == 200 else {
-            throw AppError.badResponse("Le serveur a répondu avec une erreur.")
+        // 1) yt-dlp : récupère le meilleur flux audio (sans conversion)
+        progress("Téléchargement de l'audio…")
+        let audioPath: String = try await Task.detached(priority: .userInitiated) {
+            try PythonRuntime.start()
+            let sys = Python.import("sys")
+            _ = sys
+            let ytdlp = try Python.attemptImport("yt_dlp")
+            let template = outDir.path + "/%(title)s.%(ext)s"
+            let opts: PythonObject = [
+                "format": "bestaudio/best",
+                "outtmpl": PythonObject(template),
+                "noplaylist": true,
+                "quiet": true,
+                "no_warnings": true,
+                "restrictfilenames": false,
+                "postprocessors": []
+            ]
+            let ydl = ytdlp.YoutubeDL(opts)
+            let info = ydl.extract_info(videoURL, download: true)
+            let prepared = ydl.prepare_filename(info)
+            return String(prepared) ?? ""
+        }.value
+
+        guard !audioPath.isEmpty, FileManager.default.fileExists(atPath: audioPath) else {
+            throw AppError.badResponse("yt-dlp n'a produit aucun fichier.")
         }
-        var name = "audio"
-        if let cd = http.value(forHTTPHeaderField: "Content-Disposition"),
-           let r = cd.range(of: "filename=") {
-            name = String(cd[r.upperBound...]).trimmingCharacters(in: CharacterSet(charactersIn: "\" "))
-            name = (name as NSString).deletingPathExtension
-        }
-        let dest = FileManager.default.temporaryDirectory.appendingPathComponent(name + ".mp3")
-        try? FileManager.default.removeItem(at: dest)
-        try FileManager.default.moveItem(at: tmp, to: dest)
-        return dest
+
+        // 2) ffmpeg embarqué : conversion en MP3
+        progress("Conversion en MP3…")
+        let input = URL(fileURLWithPath: audioPath)
+        let mp3 = input.deletingPathExtension().appendingPathExtension("mp3")
+        try await FFmpegConverter.toMP3(input: input, output: mp3)
+        try? FileManager.default.removeItem(at: input)
+        return mp3
     }
 }

@@ -21,25 +21,17 @@ struct SettingsView: View {
                 }
 
                 GlassCard {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Serveur yt-dlp").font(.headline)
-                        TextField("http://mon-serveur:8080", text: $settings.serverURL)
-                            .textInputAutocapitalization(.never)
-                            .autocorrectionDisabled()
-                            .padding(12)
-                            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
-                        Text("yt-dlp ne pouvant pas tourner nativement sur iOS, l'app interroge ton serveur : GET /mp3?url=…")
-                            .font(.footnote).foregroundStyle(.secondary)
-                    }
-                }
-
-                GlassCard {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Crédits").font(.headline)
-                        Text("Le téléchargement et l'extraction audio reposent sur yt-dlp, projet open source du domaine public (Unlicense).")
+                        Text("Le téléchargement repose sur yt-dlp (Unlicense), exécuté directement sur ton iPhone via Python.")
                             .font(.footnote)
                         Link("github.com/yt-dlp/yt-dlp", destination: URL(string: "https://github.com/yt-dlp/yt-dlp")!)
-                        Text("Merci aux contributeurs de yt-dlp ❤️").font(.footnote).foregroundStyle(.secondary)
+                        Text("La conversion MP3 utilise FFmpeg et LAME.").font(.footnote)
+                        Link("ffmpeg.org", destination: URL(string: "https://ffmpeg.org")!)
+                        Text("Approche d'intégration inspirée de Palladium (tfourj), PythonKit et python-apple-support.")
+                            .font(.footnote).foregroundStyle(.secondary)
+                        Link("github.com/tfourj/Palladium", destination: URL(string: "https://github.com/tfourj/Palladium")!)
+                        Text("Merci aux contributeurs de ces projets ❤️").font(.footnote).foregroundStyle(.secondary)
                     }
                 }
             }

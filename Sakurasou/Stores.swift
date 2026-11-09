@@ -1,16 +1,12 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
-/// Réglages persistants : dossier de destination (bookmark sécurisé) + serveur yt-dlp
+/// Réglages persistants : dossier de destination (bookmark sécurisé)
 final class SettingsStore: ObservableObject {
     @Published var folderName: String = "Aucun dossier choisi"
-    @Published var serverURL: String {
-        didSet { UserDefaults.standard.set(serverURL, forKey: "serverURL") }
-    }
     private let key = "destFolderBookmark"
 
     init() {
-        serverURL = UserDefaults.standard.string(forKey: "serverURL") ?? ""
         if let url = resolveFolder() { folderName = url.lastPathComponent }
     }
 
@@ -43,11 +39,10 @@ final class SettingsStore: ObservableObject {
 }
 
 enum AppError: LocalizedError {
-    case noFolder, noServer, badResponse(String)
+    case noFolder, badResponse(String)
     var errorDescription: String? {
         switch self {
         case .noFolder: return "Choisis d'abord un dossier dans Réglages."
-        case .noServer: return "Renseigne l'adresse du serveur yt-dlp dans Réglages."
         case .badResponse(let m): return m
         }
     }

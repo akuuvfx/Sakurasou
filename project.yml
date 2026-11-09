@@ -10,15 +10,38 @@ settings:
     CURRENT_PROJECT_VERSION: "1"
     CODE_SIGNING_ALLOWED: NO
     CODE_SIGN_IDENTITY: ""
+packages:
+  PythonKit:
+    url: https://github.com/pvieito/PythonKit.git
+    branch: master
+  SwiftFFmpeg:
+    path: Frameworks/SwiftFFmpeg-iOS
 targets:
   Sakurasou:
     type: application
     platform: iOS
     sources:
       - Sakurasou
+    dependencies:
+      - package: PythonKit
+      - package: SwiftFFmpeg
+      - framework: Frameworks/Python.xcframework
+        embed: true
+        codeSign: false
+    preBuildScripts:
+      - name: Install Python runtime
+        basedOnDependencyAnalysis: false
+        script: |
+          set -e
+          export PALLADIUM_DISABLE_PYTHON_DYLIB_CODESIGN=1
+          export CODE_SIGNING_ALLOWED=NO
+          export EXPANDED_CODE_SIGN_IDENTITY=""
+          export EXPANDED_CODE_SIGN_IDENTITY_NAME=""
+          sh "$PROJECT_DIR/scripts/install_python_runtime.sh"
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.sakurasou.app
         INFOPLIST_FILE: Sakurasou/Info.plist
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         GENERATE_INFOPLIST_FILE: NO
+        ENABLE_USER_SCRIPT_SANDBOXING: NO

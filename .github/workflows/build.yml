@@ -8,23 +8,84 @@ on:
 jobs:
   build:
     runs-on: macos-latest
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
+
       - name: Install XcodeGen
         run: brew install xcodegen
+
+      # --- Python embarqué (comme Palladium) ---
+      - name: Download Python Apple Support
+        uses: robinraju/release-downloader@v1
+        with:
+          repository: beeware/Python-Apple-support
+          latest: true
+          fileName: "*iOS-support*.tar.gz"
+          out-file-path: python-download
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install Python.xcframework
+        run: |
+          set -euo pipefail
+          mkdir -p Frameworks tmp-py
+          ARCHIVE=$(find python-download -maxdepth 1 -name "*iOS-support*.tar.gz" | head -n 1)
+          tar -xzf "$ARCHIVE" -C tmp-py
+          XCF=$(find tmp-py -type d -name "Python.xcframework" | head -n 1)
+          rm -rf Frameworks/Python.xcframework
+          cp -R "$XCF" Frameworks/Python.xcframework
+          grep -h 'define PY_VERSION ' Frameworks/Python.xcframework/ios-arm64/Python.framework/Headers/patchlevel.h
+
+      # --- ffmpeg embarqué (SwiftFFmpeg-iOS de tfourj, utilisé par Palladium) ---
+      - name: Download SwiftFFmpeg-iOS
+        uses: robinraju/release-downloader@v1
+        with:
+          repository: tfourj/SwiftFFmpeg-iOS
+          latest: true
+          fileName: SwiftFFmpeg-iOS.zip
+          out-file-path: swiftffmpeg-download
+          extract: true
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install SwiftFFmpeg-iOS
+        run: |
+          set -euo pipefail
+          SRC=""
+          if [ -d swiftffmpeg-download/SwiftFFmpeg-iOS ]; then
+            SRC=swiftffmpeg-download/SwiftFFmpeg-iOS
+          else
+            SRC=$(find swiftffmpeg-download -maxdepth 2 -name Package.swift -exec dirname {} \; | head -n 1)
+          fi
+          test -n "$SRC"
+          rm -rf Frameworks/SwiftFFmpeg-iOS
+          cp -R "$SRC" Frameworks/SwiftFFmpeg-iOS
+          ls Frameworks/SwiftFFmpeg-iOS
+
+      # --- yt-dlp (pur Python) installé dans un dossier de paquets ---
+      - name: Download yt-dlp into app packages
+        run: |
+          set -euo pipefail
+          python3 -m pip install --target Frameworks/yt-dlp-packages --no-compile yt-dlp
+          ls Frameworks/yt-dlp-packages
+
       - name: Generate project
         run: xcodegen generate
+
       - name: Build (unsigned)
+        env:
+          PALLADIUM_DISABLE_PYTHON_DYLIB_CODESIGN: "1"
         run: |
           xcodebuild -project Sakurasou.xcodeproj -scheme Sakurasou \
             -configuration Release -sdk iphoneos \
             -derivedDataPath build \
             CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" build
+
       - name: Create IPA
         run: |
           mkdir Payload
           cp -R build/Build/Products/Release-iphoneos/Sakurasou.app Payload/
-          zip -r Sakurasou.ipa Payload
+          zip -qr Sakurasou.ipa Payload
+
       - uses: actions/upload-artifact@v4
         with:
           name: Sakurasou-ipa

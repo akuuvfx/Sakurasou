@@ -55,7 +55,9 @@ struct DownloadView: View {
         loading = true; status = ""
         defer { loading = false }
         do {
-            let url = try await Downloader.downloadMP3(videoURL: link, server: settings.serverURL) { status = $0 }
+            let url = try await Downloader.downloadMP3(videoURL: link) { msg in
+                Task { @MainActor in status = msg }
+            }
             library.load(url)
             status = "Terminé ✓"
         } catch {

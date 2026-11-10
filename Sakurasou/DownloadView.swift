@@ -123,10 +123,20 @@ struct DownloadView: View {
         loading = true; status = ""
         defer { loading = false }
         do {
-            let url = try await Downloader.downloadMP3(videoURL: link) { msg in
+            let result = try await Downloader.downloadMP3(videoURL: link) { msg in
                 Task { @MainActor in status = msg }
             }
-            library.load(url)   // ajouté automatiquement dans l'onglet Tags
+            library.load(result.url)   // ajouté automatiquement dans l'onglet Tags
+            status = lang.t("Recherche des infos…", "Looking up info…")
+            // Remplit titre / artiste / album / année / pochette (modifiables dans l'onglet Tags)
+            let meta = await MetadataService.resolve(
+                info: result.info, lastfmKey: UserDefaults.standard.string(forKey: "lastfmKey") ?? "")
+            if !meta.title.isEmpty { library.title = meta.title }
+            library.artist = meta.artist; library.album = meta.album; library.year = meta.year
+            if let a = meta.artwork { library.artwork = a }
+            try? ID3.write(result.url, meta: ID3Meta(title: library.title, artist: library.artist,
+                                                     album: library.album, year: library.year,
+                                                     artwork: library.artwork))
             status = lang.t("Terminé ✓", "Done ✓")
         } catch {
             status = ""

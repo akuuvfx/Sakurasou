@@ -3,6 +3,11 @@ import PythonKit
 
 /// Télécharge l'audio d'une vidéo avec yt-dlp (Python embarqué) puis le convertit en MP3.
 /// Tout se passe sur l'iPhone, sans serveur.
+struct DownloadResult {
+    var url: URL
+    var info: [String: String]   // titre, artiste, album, miniature… fournis par yt-dlp
+}
+
 enum Downloader {
     /// Clients YouTube essayés dans l'ordre : défaut de yt-dlp d'abord (android_vr est bloqué
     /// par YouTube depuis août 2026 → 403), puis visionos, puis web_embedded.
@@ -15,7 +20,7 @@ enum Downloader {
     }
 
     static func downloadMP3(videoURL: String,
-                            progress: @escaping (String) -> Void) async throws -> URL {
+                            progress: @escaping (String) -> Void) async throws -> DownloadResult {
         let fm = FileManager.default
         let outDir = fm.temporaryDirectory.appendingPathComponent("dl-" + UUID().uuidString)
         try fm.createDirectory(at: outDir, withIntermediateDirectories: true)
@@ -23,8 +28,9 @@ enum Downloader {
 
         // 1) yt-dlp : récupère le meilleur flux audio (sans conversion)
         progress(LangStore.tr("Téléchargement de l'audio…", "Downloading audio…"))
-        let audioPath: String = try await WorkThread.shared.run {
+        let (audioPath, info): (String, [String: String]) = try await WorkThread.shared.run {
             var lastError = ""
+            var fields: [String: String] = [:]
             var downloaded = false
             do {
                 try PythonRuntime.start()
@@ -58,7 +64,11 @@ enum Downloader {
                     do {
                         // .throwing : une erreur Python devient une erreur Swift au lieu d'un crash
                         let ydl = try ytdlp.YoutubeDL.throwing.dynamicallyCall(withArguments: [opts])
-                        _ = try ydl.extract_info.throwing.dynamicallyCall(withArguments: [videoURL])
+                        let result = try ydl.extract_info.throwing.dynamicallyCall(withArguments: [videoURL])
+                        for key in ["title", "track", "artist", "uploader", "channel", "album", "thumbnail"] {
+                            if let v = String(result.get(key)) { fields[key] = v }
+                        }
+                        if let y = Int(result.get("release_year")) { fields["release_year"] = String(y) }
                         downloaded = true
                         break
                     } catch {
@@ -77,7 +87,7 @@ enum Downloader {
                 .filter { !["part", "ytdl"].contains($0.pathExtension) }
                 .max { ((try? $0.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0)
                      < ((try? $1.resourceValues(forKeys: [.fileSizeKey]).fileSize) ?? 0) }
-            return best?.path ?? ""
+            return (best?.path ?? "", fields)
         }
 
         guard !audioPath.isEmpty, fm.fileExists(atPath: audioPath) else {
@@ -99,6 +109,6 @@ enum Downloader {
         let final = library.appendingPathComponent(source.lastPathComponent)
         try? fm.removeItem(at: final)
         try fm.moveItem(at: source, to: final)
-        return final
+        return DownloadResult(url: final, info: info)
     }
 }

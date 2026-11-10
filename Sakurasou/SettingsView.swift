@@ -5,6 +5,7 @@ struct SettingsView: View {
     @EnvironmentObject var lang: LangStore
     @EnvironmentObject var themes: ThemeStore
     @State private var picking = false
+    @AppStorage("lastfmKey") private var lastfmKey = ""
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -61,6 +62,19 @@ struct SettingsView: View {
                     Label(settings.folderName ?? lang.t("Aucun dossier choisi", "No folder chosen"), systemImage: "folder.fill")
                     Button(lang.t("Choisir / changer le dossier", "Choose / change folder")) { picking = true }
                         .buttonStyle(GlassButtonStyle())
+                }
+
+                SettingsSection(
+                    title: lang.t("Infos musique (facultatif)", "Music info (optional)"),
+                    footer: lang.t("Titre, artiste, album, année et pochette sont remplis automatiquement (iTunes/Deezer, sans clé). Une clé Last.fm gratuite sert de source de secours.",
+                                   "Title, artist, album, year and artwork are filled automatically (iTunes/Deezer, no key). A free Last.fm key is used as a fallback source.")
+                ) {
+                    SecureField(lang.t("Clé API Last.fm", "Last.fm API key"), text: $lastfmKey)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .glassField()
+                    Link(lang.t("Obtenir une clé gratuite", "Get a free key"),
+                         destination: URL(string: "https://www.last.fm/api/account/create")!)
                 }
 
                 SettingsSection(title: lang.t("Crédits", "Credits")) {

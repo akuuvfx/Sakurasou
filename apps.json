@@ -1,24 +1,38 @@
 {
   "name": "Sakurasou",
   "identifier": "com.sakurasou.source",
+  "subtitle": "Téléchargeur MP3 avec yt-dlp",
+  "description": "Source SideStore de Sakurasou.",
+  "iconURL": "https://raw.githubusercontent.com/akuuvfx/Sakurasou/main/Sakurasou/Assets.xcassets/AppIcon.appiconset/icon.png",
+  "website": "https://github.com/akuuvfx/Sakurasou",
+  "tintColor": "FF8A3D",
+  "sourceURL": "https://raw.githubusercontent.com/akuuvfx/Sakurasou/main/apps.json",
   "apps": [
     {
       "name": "Sakurasou",
       "bundleIdentifier": "com.sakurasou.app",
       "developerName": "akuuvfx",
-      "subtitle": "Telechargeur MP3 avec yt-dlp",
-      "localizedDescription": "Telecharge des videos en MP3 avec yt-dlp, edite les tags et envoie vers le dossier choisi.",
+      "subtitle": "Téléchargeur MP3 avec yt-dlp",
+      "localizedDescription": "Télécharge l'audio de vidéos en MP3 avec yt-dlp, édite les tags et envoie vers le dossier choisi. 100 % local, sans serveur.",
       "iconURL": "https://raw.githubusercontent.com/akuuvfx/Sakurasou/main/Sakurasou/Assets.xcassets/AppIcon.appiconset/icon.png",
       "tintColor": "FF8A3D",
+      "category": "utilities",
+      "screenshotURLs": [],
       "versions": [
         {
           "version": "1.0",
+          "buildVersion": "1",
           "date": "2026-11-10",
+          "localizedDescription": "Première version.",
           "downloadURL": "https://github.com/akuuvfx/Sakurasou/releases/latest/download/Sakurasou.ipa",
           "size": 50000000,
           "minOSVersion": "26.0"
         }
-      ]
+      ],
+      "appPermissions": {
+        "entitlements": [],
+        "privacy": {}
+      }
     }
   ],
   "news": []

@@ -9,6 +9,8 @@ jobs:
   build:
     runs-on: macos-latest
     timeout-minutes: 60
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -108,3 +110,12 @@ jobs:
         with:
           name: Sakurasou-ipa
           path: Sakurasou.ipa
+
+      - name: Publish release (SideStore)
+        if: github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: Sakurasou (latest)
+          files: Sakurasou.ipa
+          overwrite_files: true

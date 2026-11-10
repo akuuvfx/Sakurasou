@@ -3,6 +3,7 @@ import SwiftUI
 struct DownloadView: View {
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var library: LibraryStore
+    @EnvironmentObject var lang: LangStore
     @State private var link = ""
     @State private var status = ""
     @State private var loading = false
@@ -10,27 +11,27 @@ struct DownloadView: View {
 
     var body: some View {
         ScrollView {
+            GlassEffectContainer(spacing: 16) {
             VStack(spacing: 16) {
                 Text("Sakurasou").font(.largeTitle.bold()).frame(maxWidth: .infinity, alignment: .leading)
 
                 GlassCard {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Lien de la vidéo").font(.headline)
+                        Text(lang.t("Lien de la vidéo", "Video link")).font(.headline)
                         TextField("https://…", text: $link)
                             .textInputAutocapitalization(.never)
                             .autocorrectionDisabled()
                             .keyboardType(.URL)
-                            .padding(12)
-                            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+                            .glassField()
                         Button {
                             Task { await download() }
                         } label: {
                             HStack {
                                 if loading { ProgressView() }
-                                Text(loading ? "Téléchargement…" : "Télécharger en MP3")
+                                Text(loading ? lang.t("Téléchargement…", "Downloading…") : lang.t("Télécharger en MP3", "Download as MP3"))
                             }.frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.borderedProminent)
+                        .buttonStyle(.glassProminent)
                         .tint(.orange)
                         .disabled(loading || link.isEmpty)
                         if !status.isEmpty { Text(status).font(.footnote).foregroundStyle(.secondary) }
@@ -45,6 +46,7 @@ struct DownloadView: View {
                 SendButton(alert: $alert)
             }
             .padding()
+            }
         }
         .alert("Sakurasou", isPresented: Binding(get: { alert != nil }, set: { if !$0 { alert = nil } })) {
             Button("OK", role: .cancel) {}
@@ -59,7 +61,7 @@ struct DownloadView: View {
                 Task { @MainActor in status = msg }
             }
             library.load(url)
-            status = "Terminé ✓"
+            status = lang.t("Terminé ✓", "Done ✓")
         } catch {
             alert = error.localizedDescription
         }
@@ -70,20 +72,21 @@ struct DownloadView: View {
 struct SendButton: View {
     @EnvironmentObject var settings: SettingsStore
     @EnvironmentObject var library: LibraryStore
+    @EnvironmentObject var lang: LangStore
     @Binding var alert: String?
 
     var body: some View {
         Button {
-            guard let f = library.currentFile else { alert = "Aucun MP3 à envoyer."; return }
+            guard let f = library.currentFile else { alert = lang.t("Aucun MP3 à envoyer.", "No MP3 to send."); return }
             do {
                 try settings.send(f)
-                alert = "MP3 envoyé dans « \(settings.folderName) »."
+                alert = lang.t("MP3 envoyé dans « \(settings.folderName ?? "") ».", "MP3 sent to “\(settings.folderName ?? "")”.")
             } catch { alert = error.localizedDescription }
         } label: {
-            Label("Envoyer le MP3", systemImage: "paperplane.fill")
+            Label(lang.t("Envoyer le MP3", "Send MP3"), systemImage: "paperplane.fill")
                 .frame(maxWidth: .infinity).padding(.vertical, 6)
         }
-        .buttonStyle(.borderedProminent)
+        .buttonStyle(.glassProminent)
         .tint(.pink)
     }
 }

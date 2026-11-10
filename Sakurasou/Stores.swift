@@ -1,9 +1,23 @@
 import SwiftUI
 import UniformTypeIdentifiers
 
+/// Langue de l'app (français / anglais)
+final class LangStore: ObservableObject {
+    static let shared = LangStore()
+    @Published var code: String {
+        didSet { UserDefaults.standard.set(code, forKey: "appLanguage") }
+    }
+    init() {
+        code = UserDefaults.standard.string(forKey: "appLanguage")
+            ?? (Locale.preferredLanguages.first?.hasPrefix("en") == true ? "en" : "fr")
+    }
+    func t(_ fr: String, _ en: String) -> String { code == "en" ? en : fr }
+    static func tr(_ fr: String, _ en: String) -> String { shared.t(fr, en) }
+}
+
 /// Réglages persistants : dossier de destination (bookmark sécurisé)
 final class SettingsStore: ObservableObject {
-    @Published var folderName: String = "Aucun dossier choisi"
+    @Published var folderName: String?
     private let key = "destFolderBookmark"
 
     init() {
@@ -42,7 +56,7 @@ enum AppError: LocalizedError {
     case noFolder, badResponse(String)
     var errorDescription: String? {
         switch self {
-        case .noFolder: return "Choisis d'abord un dossier dans Réglages."
+        case .noFolder: return LangStore.tr("Choisis d'abord un dossier dans Réglages.", "First choose a folder in Settings.")
         case .badResponse(let m): return m
         }
     }

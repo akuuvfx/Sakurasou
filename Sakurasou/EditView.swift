@@ -4,18 +4,20 @@ import UniformTypeIdentifiers
 
 struct EditView: View {
     @EnvironmentObject var library: LibraryStore
+    @EnvironmentObject var lang: LangStore
     @State private var importing = false
     @State private var photo: PhotosPickerItem?
     @State private var alert: String?
 
     var body: some View {
         ScrollView {
+            GlassEffectContainer(spacing: 16) {
             VStack(spacing: 16) {
-                Text("Tags MP3").font(.largeTitle.bold()).frame(maxWidth: .infinity, alignment: .leading)
+                Text(lang.t("Tags MP3", "MP3 Tags")).font(.largeTitle.bold()).frame(maxWidth: .infinity, alignment: .leading)
 
                 GlassCard {
                     Button { importing = true } label: {
-                        Label(library.currentFile?.lastPathComponent ?? "Choisir un fichier MP3",
+                        Label(library.currentFile?.lastPathComponent ?? lang.t("Choisir un fichier MP3", "Choose an MP3 file"),
                               systemImage: "doc.badge.plus")
                     }
                 }
@@ -29,20 +31,21 @@ struct EditView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 18))
                             }
                             PhotosPicker(selection: $photo, matching: .images) {
-                                Label("Changer la pochette", systemImage: "photo")
+                                Label(lang.t("Changer la pochette", "Change artwork"), systemImage: "photo")
                             }
-                            field("Titre", $library.title)
-                            field("Artiste", $library.artist)
+                            field(lang.t("Titre", "Title"), $library.title)
+                            field(lang.t("Artiste", "Artist"), $library.artist)
                             field("Album", $library.album)
-                            field("Année", $library.year).keyboardType(.numberPad)
-                            Button("Enregistrer les tags") { save() }
-                                .buttonStyle(.borderedProminent).tint(.orange)
+                            field(lang.t("Année", "Year"), $library.year).keyboardType(.numberPad)
+                            Button(lang.t("Enregistrer les tags", "Save tags")) { save() }
+                                .buttonStyle(.glassProminent).tint(.orange)
                         }
                     }
                 }
                 SendButton(alert: $alert)
             }
             .padding()
+            }
         }
         .fileImporter(isPresented: $importing, allowedContentTypes: [.mp3, .audio]) { r in
             if case .success(let url) = r {
@@ -69,8 +72,7 @@ struct EditView: View {
 
     func field(_ name: String, _ binding: Binding<String>) -> some View {
         TextField(name, text: binding)
-            .padding(12)
-            .background(.white.opacity(0.15), in: RoundedRectangle(cornerRadius: 12))
+            .glassField()
     }
 
     func save() {
@@ -79,7 +81,7 @@ struct EditView: View {
             try ID3.write(f, meta: ID3Meta(title: library.title, artist: library.artist,
                                            album: library.album, year: library.year,
                                            artwork: library.artwork))
-            alert = "Tags enregistrés."
+            alert = lang.t("Tags enregistrés.", "Tags saved.")
         } catch { alert = error.localizedDescription }
     }
 }

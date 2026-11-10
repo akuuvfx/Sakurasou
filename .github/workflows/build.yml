@@ -70,7 +70,7 @@ jobs:
       - name: Download yt-dlp into app packages
         run: |
           set -euo pipefail
-          python3 -m pip install --target Frameworks/yt-dlp-packages --no-compile yt-dlp
+          python3 -m pip install --pre --upgrade --target Frameworks/yt-dlp-packages --no-compile yt-dlp
           ls Frameworks/yt-dlp-packages
 
       - name: Generate project

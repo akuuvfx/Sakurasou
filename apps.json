@@ -4,7 +4,7 @@
   "apps": [
     {
       "name": "Sakurasou",
-      "bundleIdentifier": "com.sakurasou.Sakurasou",
+      "bundleIdentifier": "com.sakurasou.app",
       "developerName": "akuuvfx",
       "subtitle": "Telechargeur MP3 avec yt-dlp",
       "localizedDescription": "Telecharge des videos en MP3 avec yt-dlp, edite les tags et envoie vers le dossier choisi.",
